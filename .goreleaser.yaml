@@ -1,0 +1,51 @@
+# Release config: `git tag vX.Y.Z && git push --tags` runs this via
+# .github/workflows/release.yml. Check it locally with:
+#   goreleaser check && goreleaser release --snapshot --clean
+version: 2
+project_name: incant
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - main: ./cmd/incant
+    env: [CGO_ENABLED=0]
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: [README.md]
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^test:", "^chore:"]
+
+# Publishes Formula/incant.rb to github.com/callumscott/homebrew-tap, so
+#   brew install callumscott/tap/incant
+# works. The tap repository must exist, and the release workflow needs a
+# token that can push to it (HOMEBREW_TAP_TOKEN).
+brews:
+  - repository:
+      owner: callumscott
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/callumscott/incant
+    description: Ask for a shell one-liner without leaving your prompt
+    test: |
+      assert_match "incant", shell_output("#{bin}/incant --version")
+    caveats: |
+      Add one line to your shell's rc file:
+        zsh:   eval "$(incant shell-init zsh)"     # ~/.zshrc
+        bash:  eval "$(incant shell-init bash)"    # ~/.bashrc (bash 4+)
+      Then run `incant doctor` to check the setup.

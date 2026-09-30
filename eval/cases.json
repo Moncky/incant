@@ -1,0 +1,107 @@
+[
+  {
+    "name": "line-count-txt-among-mp3",
+    "note": "IDEA.md's motivating case: two .txt files hidden in a directory of .mp3",
+    "request": "get the total line count of the txt files here",
+    "files": {"file_a.txt": "one\ntwo\nthree\n", "file_b.txt": "four\nfive\n", "song1.mp3": "ID3", "song2.mp3": "ID3", "song3.mp3": "ID3"},
+    "expect": {"stdout_last_number": 5}
+  },
+  {
+    "name": "pipe-delimited-log",
+    "note": "the delimiter is only visible by looking at the file",
+    "request": "how many requests in access.log returned 404",
+    "files": {"access.log": "2026-09-01T10:00:00|GET|/|200\n2026-09-01T10:00:01|GET|/missing|404\n2026-09-01T10:00:02|POST|/api|500\n2026-09-01T10:00:03|GET|/gone|404\n"},
+    "expect": {"stdout_last_number": 2}
+  },
+  {
+    "name": "semicolon-csv-sum-by-header",
+    "note": "European CSV: semicolon delimiter, and the column is named, not numbered",
+    "request": "sum the amount column in sales.csv",
+    "files": {"sales.csv": "id;customer;amount;currency\n1;acme;10;EUR\n2;globex;20;EUR\n3;initech;30;EUR\n"},
+    "expect": {"stdout_last_number": 60}
+  },
+  {
+    "name": "unique-ips",
+    "request": "count the unique client IPs in access.log",
+    "files": {"access.log": "10.0.0.1 - - [01/Sep/2026] \"GET / HTTP/1.1\" 200\n10.0.0.2 - - [01/Sep/2026] \"GET /a HTTP/1.1\" 200\n10.0.0.1 - - [01/Sep/2026] \"GET /b HTTP/1.1\" 404\n10.0.0.3 - - [01/Sep/2026] \"GET / HTTP/1.1\" 200\n"},
+    "expect": {"stdout_last_number": 3}
+  },
+  {
+    "name": "tsv-second-column-unique",
+    "request": "list the distinct values in the second column of data.tsv, sorted",
+    "files": {"data.tsv": "a\tred\t1\nb\tblue\t2\nc\tred\t3\nd\tgreen\t4\n"},
+    "expect": {"stdout_lines": ["blue", "green", "red"]}
+  },
+  {
+    "name": "delete-tmp-with-spaces",
+    "note": "filenames with spaces break naive xargs pipelines",
+    "request": "delete all the .tmp files in this directory and below",
+    "files": {"a.tmp": "x", "my file.tmp": "x", "sub/deep file.tmp": "x", "keep.txt": "x"},
+    "expect": {"gone": ["a.tmp", "my file.tmp", "sub/deep file.tmp"], "kept": ["keep.txt"]}
+  },
+  {
+    "name": "delete-tmp-with-newline-name",
+    "note": "a newline in a filename defeats line-based pipelines entirely",
+    "request": "delete every .tmp file here",
+    "files": {"plain.tmp": "x", "bad\nname.tmp": "x", "keep.txt": "x"},
+    "expect": {"gone": ["plain.tmp", "bad\nname.tmp"], "kept": ["keep.txt"]}
+  },
+  {
+    "name": "delete-old-logs",
+    "request": "delete .log files older than 7 days",
+    "files": {"old.log": "x", "new.log": "x", "old.txt": "x"},
+    "mtimes": {"old.log": "240h", "new.log": "1h", "old.txt": "240h"},
+    "expect": {"gone": ["old.log"], "kept": ["new.log", "old.txt"]}
+  },
+  {
+    "name": "sed-in-place-bsd-trap",
+    "note": "sed -i takes a suffix argument on BSD and none on GNU",
+    "request": "replace foo with bar in every .conf file, in place",
+    "files": {"a.conf": "foo=1\n", "b.conf": "x=foo\n", "c.txt": "foo\n"},
+    "expect": {"contents": {"a.conf": "bar=1\n", "b.conf": "x=bar\n", "c.txt": "foo\n"}, "kept": ["a.conf", "b.conf"]}
+  },
+  {
+    "name": "rename-upper-jpg",
+    "request": "rename all .JPG files to lowercase .jpg",
+    "files": {"IMG_1.JPG": "1", "IMG_2.JPG": "2", "notes.txt": "x"},
+    "expect": {"gone": ["IMG_1.JPG", "IMG_2.JPG"], "kept": ["IMG_1.jpg", "IMG_2.jpg", "notes.txt"]}
+  },
+  {
+    "name": "crlf-to-lf",
+    "request": "convert data.txt from windows line endings to unix",
+    "files": {"data.txt": "a\r\nb\r\n"},
+    "expect": {"contents": {"data.txt": "a\nb\n"}}
+  },
+  {
+    "name": "date-three-days-ago",
+    "note": "date -d is GNU-only; BSD needs date -v",
+    "request": "print the date three days ago as YYYY-MM-DD",
+    "files": {},
+    "expect": {"stdout_date_offset_days": -3}
+  },
+  {
+    "name": "largest-file",
+    "request": "which file here is the largest",
+    "files": {"small.bin": "x", "big.bin": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "medium.bin": "xxxxxxxxxx"},
+    "expect": {"stdout_contains": ["big.bin"], "stdout_excludes": ["small.bin"]}
+  },
+  {
+    "name": "files-containing-todo",
+    "request": "list the files that contain TODO",
+    "files": {"a.go": "// TODO: fix\n", "b.go": "package b\n", "notes/c.md": "- TODO later\n"},
+    "expect": {"stdout_contains": ["a.go", "c.md"], "stdout_excludes": ["b.go"]}
+  },
+  {
+    "name": "json-field",
+    "request": "print the name field from package.json",
+    "files": {"package.json": "{\n  \"name\": \"incant-demo\",\n  \"version\": \"1.0.0\"\n}\n"},
+    "expect": {"stdout_contains": ["incant-demo"], "stdout_excludes": ["version"]}
+  },
+  {
+    "name": "modified-today",
+    "request": "list files modified in the last day",
+    "files": {"fresh.txt": "x", "stale.txt": "x"},
+    "mtimes": {"fresh.txt": "2h", "stale.txt": "72h"},
+    "expect": {"stdout_contains": ["fresh.txt"], "stdout_excludes": ["stale.txt"]}
+  }
+]

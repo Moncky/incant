@@ -1,0 +1,25 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install zsh (for the integration syntax check)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y zsh
+      - run: go vet ./...
+      - run: test -z "$(gofmt -l .)"
+      # The model eval (INCANT_EVAL=1) is not run in CI: it costs money and
+      # needs credentials. Its harness self-test runs as part of this.
+      - run: go test ./...
